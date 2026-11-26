@@ -1,4 +1,7 @@
-"""Run this project's full unittest suite from the repository root."""
+"""Run the original regression suite plus the cut-plan browser hand-off checks.
+
+Returns non-zero if any test fails; the cut-plan tests drive the real HTTP forms.
+"""
 import sys
 import unittest
 

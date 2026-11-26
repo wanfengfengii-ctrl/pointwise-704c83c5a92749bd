@@ -33,6 +33,21 @@ python3 -B -m browser.http_server --db workshop.sqlite3 --port 8000
 | `POST /reports` | URL 编码的 `proof_id`，201 返回已提交的快照和签出号 | 未知校样 404，签存失败 500，均无新单 |
 | `GET /reports/{id}` | 凭签出号领取原签快照 | 未知签出号 404 |
 
+## 分步试裁签单
+
+冻结校样另有一份共享纸况，只记录成功签出的试裁单新增的裁口。原稿通孔始终在底层。试裁台与草稿入口见 `CUT_PLANS.md`。
+
+| 入口 | 请求与成功结果 | 失败结果 |
+| --- | --- | --- |
+| `GET /proofs/{id}/cut-plans?step=&side=` | 显示共享纸况和开稿表单 | 非法视图 400，未知校样 404 |
+| `POST /cut-plans` | URL 编码的 `proof_id`，201 显示新草稿 | 未知校样 404 |
+| `GET /cut-plans/{id}?step=&side=` | 显示草稿、已有步骤和本页选格表单 | 非法视图 400，未知草稿 404 |
+| `POST /cut-plans/{id}/steps` | `revision, step, side, x, y`，200 追加一步 | 过期表单 409，无实纸 422，未知草稿 404 |
+| `POST /cut-plans/{id}/issue` | `revision`，201 显示已签试裁单 | 过期表单 409，纸况冲突 409（指出步号），未知草稿 404，签存失败 500 |
+| `GET /cut-reports/{id}` | 按试裁单号领取原签内容 | 未知号 404 |
+
+草稿从开启时的共享纸况起步，此后沿自己的步骤推进；其他草稿签出时已开草稿仍显示原审阅结果。每一步贯穿该视向所见第一张实纸，并预览裁后本格露出的原格与纸面，无纸可露时明示露空。签出按草稿步骤顺序逐步验口：原格已是孔时记「先前完成」并核对当下露面，仍是实纸时须仍见所审原面才新增裁口，每步办完核对露面后才办下一步。冲突或签存失败都不新增裁口或签单。
+
 浏览器选格表单始终带该页的校样、折步、视向和显示格。服务端据此从冻结原件重算落点。批注保留填写的非空原文。展开与签出都读取已持久化的原面身份。
 
 ## 回归和演示
@@ -46,6 +61,8 @@ python3 -B check_project.py
 ```sh
 python3 -B -m unittest discover
 python3 -B -m unittest tests.test_browser.BrowserTests.test_two_sided_fold
+python3 -B -m unittest tests.test_cut_plans
+python3 -B -m cut.demo
 ```
 
 演示在临时数据库和本机临时端口运行。它打开正反两页，先反后正提交实际渲染的表单，核对两笔原纸面回执及展开和签出内容，随后打印 `POINTWISE_SCENARIO` 实测记录。完整套件另检查冻结失败、旧页折步、空白实纸、全孔无写入、签存回滚、重开及历史领取。

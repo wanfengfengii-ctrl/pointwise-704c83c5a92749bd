@@ -4,6 +4,7 @@ from html.parser import HTMLParser
 from http.client import HTTPConnection
 import json
 from pathlib import Path
+import re
 import sqlite3
 from threading import Thread
 from urllib.parse import urlencode
@@ -36,11 +37,16 @@ class WorkshopPage(HTMLParser):
         self.marks: dict[tuple[int, int], str] = {}
         self.report_id: int | None = None
         self.report_proof_id: int | None = None
+        self.cut_plan_id: int | None = None
+        self.cut_plan_proof_id: int | None = None
+        self.cut_steps: list[dict] = []
+        self.shared_holes: int | None = None
         self._form: HTMLForm | None = None
         self._location: tuple[str, int, int, str] | None = None
         self._display: tuple[int, int] | None = None
         self._mark: list[str] | None = None
         self._note: tuple[int, list[str]] | None = None
+        self._cut_step: dict | None = None
         self.feed(source)
         self.close()
 
@@ -49,6 +55,29 @@ class WorkshopPage(HTMLParser):
         if 'data-report-id' in attrs:
             self.report_id = int(attrs['data-report-id'])
             self.report_proof_id = int(attrs['data-proof-id'])
+        if 'data-cut-plan-id' in attrs:
+            self.cut_plan_id = int(attrs['data-cut-plan-id'])
+            self.cut_plan_proof_id = int(attrs['data-proof-id'])
+        if 'data-shared-holes' in attrs:
+            self.shared_holes = int(attrs['data-shared-holes'])
+        if tag == 'li' and 'data-order' in attrs:
+            exposed = None
+            if 'data-exposed-x' in attrs:
+                exposed = (
+                    int(attrs['data-exposed-x']), int(attrs['data-exposed-y']),
+                    attrs['data-exposed-face'],
+                )
+            self._cut_step = {
+                'order': int(attrs['data-order']),
+                'fold_step': int(attrs['data-fold-step']),
+                'side': attrs['data-side'],
+                'display': (int(attrs['data-display-x']), int(attrs['data-display-y'])),
+                'origin': (int(attrs['data-origin-x']), int(attrs['data-origin-y'])),
+                'face': attrs['data-face'],
+                'exposed': exposed,
+                'outcome': attrs.get('data-outcome'),
+                'lines': [],
+            }
         if 'data-face' in attrs and 'data-x' in attrs and 'data-y' in attrs:
             self._location = tag, int(attrs['data-x']), int(attrs['data-y']), attrs['data-face']
         if tag == 'td' and 'data-display-x' in attrs:
@@ -71,6 +100,8 @@ class WorkshopPage(HTMLParser):
                 self._form.text_fields.append(attrs['name'])
 
     def handle_data(self, data: str) -> None:
+        if self._cut_step is not None and data.strip():
+            self._cut_step['lines'].append(data.strip())
         if self._note is not None:
             self._note[1].append(data)
         if self._mark is not None:
@@ -88,6 +119,9 @@ class WorkshopPage(HTMLParser):
         if tag == 'p' and self._mark is not None:
             self.marks[self._display] = ''.join(self._mark)
             self._mark = None
+        if tag == 'li' and self._cut_step is not None:
+            self.cut_steps.append(self._cut_step)
+            self._cut_step = None
         if tag == 'td':
             self._display = None
         if self._location is not None and tag == self._location[0]:
@@ -99,6 +133,12 @@ class WorkshopPage(HTMLParser):
         )]
         if len(forms) != 1:
             raise AssertionError(f'显示格 ({x}, {y}) 应有一个选格表单，实际有 {len(forms)} 个')
+        return forms[0]
+
+    def issue_form(self) -> HTMLForm:
+        forms = [form for form in self.forms if form.action.endswith('/issue')]
+        if len(forms) != 1:
+            raise AssertionError(f'草稿页应有一个签出表单，实际有 {len(forms)} 个')
         return forms[0]
 
 
@@ -183,3 +223,31 @@ class HTTPWorkshop:
 
     def report(self, report_id: int) -> HTTPReply:
         return self.request('GET', f'/reports/{report_id}')
+
+    def trial_desk(self, proof_id: int, step: int = 0, side: str = 'front') -> HTTPReply:
+        query = urlencode({'step': step, 'side': side})
+        return self.request('GET', f'/proofs/{proof_id}/cut-plans?{query}')
+
+    def open_draft(self, proof_id: int) -> tuple[int, HTTPReply]:
+        reply = self.request('POST', '/cut-plans', {'proof_id': str(proof_id)})
+        if reply.status != 201:
+            return 0, reply
+        draft_id = _draft_id_from(reply.body)
+        return draft_id, reply
+
+    def draft(self, draft_id: int, step: int = 0, side: str = 'front') -> HTTPReply:
+        query = urlencode({'step': step, 'side': side})
+        return self.request('GET', f'/cut-plans/{draft_id}?{query}')
+
+    def trial_step(self, form: HTMLForm) -> HTTPReply:
+        return self.post_form(form)
+
+    def cut_plan(self, plan_id: int) -> HTTPReply:
+        return self.request('GET', f'/cut-reports/{plan_id}')
+
+
+def _draft_id_from(source: str) -> int:
+    match = re.search(r'data-draft-id="(\d+)"', source)
+    if match is None:
+        raise AssertionError('成功页缺少草稿号')
+    return int(match.group(1))

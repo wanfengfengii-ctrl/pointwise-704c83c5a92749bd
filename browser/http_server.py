@@ -7,6 +7,15 @@ from urllib.parse import parse_qsl, urlsplit
 
 from browser.html_pages import PageResponse, page, problem
 from browser.proof_pages import view_proof
+from cut.http_cut import (
+    append_step_response,
+    issue_response,
+    open_draft_response,
+    read_cut_plan_response,
+    view_draft,
+    view_trial_desk,
+)
+from cut.store import initialize_cut_plans
 from markup.annotations import initialize_annotations
 from markup.review_pages import submit_annotation, view_unfolded
 from release.history import initialize_reports
@@ -32,6 +41,7 @@ def initialize_database(database: str | Path) -> None:
         initialize_proofs(connection)
         initialize_annotations(connection)
         initialize_reports(connection)
+        initialize_cut_plans(connection)
 
 
 def _form_fields(encoded: str) -> dict[str, str]:
@@ -95,8 +105,14 @@ class ProofRequestHandler(BaseHTTPRequestHandler):
             return view_proof(connection, _number(parts[2], '校样号'), fields)
         if len(parts) == 4 and parts[1] == 'proofs' and parts[3] == 'unfolded':
             return view_unfolded(connection, _number(parts[2], '校样号'))
+        if len(parts) == 4 and parts[1] == 'proofs' and parts[3] == 'cut-plans':
+            return view_trial_desk(connection, _number(parts[2], '校样号'), fields)
         if len(parts) == 3 and parts[1] == 'reports':
             return read_report_response(connection, _number(parts[2], '签出号'))
+        if len(parts) == 3 and parts[1] == 'cut-plans':
+            return view_draft(connection, _number(parts[2], '草稿号'), fields)
+        if len(parts) == 3 and parts[1] == 'cut-reports':
+            return read_cut_plan_response(connection, _number(parts[2], '试裁单号'))
         return problem(404, '页面不存在')
 
     def do_GET(self) -> None:
@@ -123,10 +139,28 @@ class ProofRequestHandler(BaseHTTPRequestHandler):
             raise ValueError('表单内容不完整')
         return _form_fields(body.decode('utf-8'))
 
+    def _post_page(
+        self, connection: sqlite3.Connection, path: str, fields: dict[str, str],
+    ) -> PageResponse:
+        if path in ('/annotations', '/reports', '/cut-plans'):
+            if path == '/annotations':
+                return submit_annotation(connection, fields)
+            if path == '/reports':
+                return issue_report_response(connection, _number(fields.get('proof_id', ''), '校样号'))
+            return open_draft_response(connection, fields)
+        parts = path.split('/')
+        if len(parts) == 4 and parts[1] == 'cut-plans':
+            draft_id = _number(parts[2], '草稿号')
+            if parts[3] == 'steps':
+                return append_step_response(connection, draft_id, fields)
+            if parts[3] == 'issue':
+                return issue_response(connection, draft_id, fields)
+        return problem(404, '页面不存在')
+
     def do_POST(self) -> None:
         try:
             path = urlsplit(self.path).path
-            if path not in ('/annotations', '/reports'):
+            if path not in ('/annotations', '/reports', '/cut-plans') and not path.startswith('/cut-plans/'):
                 self._send_page(problem(404, '页面不存在'))
                 return
             if self.headers.get_content_type() != 'application/x-www-form-urlencoded':
@@ -134,10 +168,7 @@ class ProofRequestHandler(BaseHTTPRequestHandler):
                 return
             fields = self._read_form()
             with closing(_connect(self.server.database)) as connection:
-                if path == '/annotations':
-                    response = submit_annotation(connection, fields)
-                else:
-                    response = issue_report_response(connection, _number(fields.get('proof_id', ''), '校样号'))
+                response = self._post_page(connection, path, fields)
         except ValueError as error:
             response = problem(400, str(error))
         except sqlite3.Error:

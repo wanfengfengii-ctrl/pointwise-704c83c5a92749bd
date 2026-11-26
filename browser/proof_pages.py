@@ -16,7 +16,8 @@ def render_proof_page(proof: FrozenProof, view: ViewSpec, surface: VisibleSurfac
     return page(title, f'''
 {controls}
 {grid}
-<p><a href="/proofs/{proof.proof_id}/unfolded">查看双面展开图</a></p>
+<p><a href="/proofs/{proof.proof_id}/unfolded">查看双面展开图</a>
+<a href="/proofs/{proof.proof_id}/cut-plans?step={view.step}&side={view.observation.value}">进入试裁台</a></p>
 ''')
 
 

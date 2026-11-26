@@ -37,5 +37,10 @@ button { border: 1px solid var(--accent); border-radius: .25rem; padding: .35rem
 .receipt { max-width: 36rem; }
 .receipt h2 { margin-top: 0; }
 .notes { padding-left: 1.4rem; margin-bottom: 0; }
+.cut-steps { padding-left: 1.4rem; }
+.cut-step { margin-bottom: .8rem; }
+.cut-step p { margin: .15rem 0; }
+.outcome { font-weight: 650; color: var(--accent); }
+.shared-holes { font-weight: 600; }
 .annotation-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: .25em 0 .6em; }
 [role='alert'] { border-left: .25rem solid #a84c2b; padding: .5rem .8rem; background: var(--panel); }
