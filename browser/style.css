@@ -1,0 +1,41 @@
+:root {
+  color-scheme: light;
+  font-family: system-ui, sans-serif;
+  color: #27271f;
+  background: #f8f5ec;
+  --panel: #fffdf7;
+  --line: #c9c5b5;
+  --accent: #35574a;
+}
+* { box-sizing: border-box; }
+body { margin: 0; line-height: 1.5; }
+.site-header { background: var(--accent); padding: .9rem max(1rem, calc((100% - 68rem) / 2)); }
+.site-header a { color: #fffdf7; font-weight: 700; text-decoration: none; }
+main { max-width: 70rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+h1, h2 { line-height: 1.25; }
+h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
+h2 { font-size: 1.2rem; }
+a { color: var(--accent); text-underline-offset: .2em; }
+.controls, .actions { display: flex; gap: .65rem; flex-wrap: wrap; align-items: center; margin: .75rem 0; }
+.controls a { padding: .35rem .75rem; border: 1px solid var(--line); border-radius: .3rem; }
+.controls a[aria-current='page'] { color: white; background: var(--accent); text-decoration: none; }
+.table-scroll { overflow-x: auto; margin-block: .75rem 1.25rem; }
+table { border-collapse: collapse; background: var(--panel); }
+caption { text-align: left; padding: .25rem 0; font-weight: 600; }
+th, td { border: 1px solid var(--line); padding: .55rem .75rem; text-align: left; vertical-align: top; }
+th { background: #ede9da; }
+.paper-grid td { min-width: 10.5rem; }
+.cell-mark { margin: 0 0 .55rem; overflow-wrap: anywhere; font-weight: 650; }
+.empty { background: repeating-linear-gradient(135deg, #eeeade 0 7px, #f8f5ec 7px 14px); }
+.muted, .empty .cell-mark { color: #5f5d52; }
+textarea, input[type='number'] { display: block; font: inherit; width: 100%; margin: .25rem 0 .45rem; border: 1px solid #8c8b7d; border-radius: .2rem; padding: .3rem .4rem; }
+textarea { resize: vertical; }
+button { border: 1px solid var(--accent); border-radius: .25rem; padding: .35rem .65rem; background: var(--accent); color: white; cursor: pointer; font: inherit; }
+:focus-visible { outline: 2px solid #a84c2b; outline-offset: 2px; }
+.home-forms { display: flex; flex-wrap: wrap; gap: 1rem; }
+.home-forms form, .receipt { padding: 1rem; border: 1px solid var(--line); background: var(--panel); }
+.receipt { max-width: 36rem; }
+.receipt h2 { margin-top: 0; }
+.notes { padding-left: 1.4rem; margin-bottom: 0; }
+.annotation-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: .25em 0 .6em; }
+[role='alert'] { border-left: .25rem solid #a84c2b; padding: .5rem .8rem; background: var(--panel); }

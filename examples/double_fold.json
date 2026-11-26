@@ -1,0 +1,21 @@
+{
+  "width": 4,
+  "height": 1,
+  "front": [
+    {"x": 0, "y": 0, "mark": "A 正面"},
+    {"x": 1, "y": 0, "mark": "B 正面"},
+    {"x": 2, "y": 0, "mark": "C 正面"},
+    {"x": 3, "y": 0, "mark": "D 正面"}
+  ],
+  "back": [
+    {"x": 0, "y": 0, "mark": "A 背面"},
+    {"x": 1, "y": 0, "mark": "B 背面"},
+    {"x": 2, "y": 0, "mark": "C 背面"},
+    {"x": 3, "y": 0, "mark": "D 背面"}
+  ],
+  "holes": [[1, 0]],
+  "folds": [
+    {"axis": "x", "line": 2, "moving": "high"},
+    {"axis": "x", "line": 1, "moving": "high"}
+  ]
+}

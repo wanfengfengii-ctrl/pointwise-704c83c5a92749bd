@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "kind": "web",
+  "setup": [],
+  "start": ["sh", "-c", "[ \"$1\" = 127.0.0.1 ] && exec python3 -B -m browser.http_server --db workshop.sqlite3 --port \"$2\"", "workshop", "${POINTWISE_HOST}", "${POINTWISE_PORT}"],
+  "readiness_path": "/",
+  "verify": ["python3", "-B", "check_project.py"],
+  "demo": ["python3", "-B", "-m", "unittest", "tests.test_browser.BrowserTests.test_two_sided_fold"]
+}
